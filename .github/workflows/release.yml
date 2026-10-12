@@ -1,0 +1,175 @@
+name: Release Build & Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Release tag (e.g. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    name: Build Windows (x64)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Enable Windows Desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Windows Release
+        run: flutter build windows --release
+
+      - name: Compress Windows Artifacts
+        shell: pwsh
+        run: |
+          Compress-Archive -Path build\windows\x64\runner\Release\* -DestinationPath NovaDownloader-Windows-x64.zip
+
+      - name: Upload Windows Asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: NovaDownloader-Windows-x64
+          path: NovaDownloader-Windows-x64.zip
+
+  build-linux:
+    name: Build Linux (x64)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Linux Build Dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y ninja-build libgtk-3-dev pkg-config clang cmake libayatana-appindicator3-dev
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Enable Linux Desktop
+        run: flutter config --enable-linux-desktop
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build Linux Release
+        run: flutter build linux --release
+
+      - name: Compress Linux Artifacts
+        run: |
+          tar -czf NovaDownloader-Linux-x64.tar.gz -C build/linux/x64/release/bundle .
+
+      - name: Upload Linux Asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: NovaDownloader-Linux-x64
+          path: NovaDownloader-Linux-x64.tar.gz
+
+  build-macos:
+    name: Build macOS (Universal)
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Enable macOS Desktop
+        run: flutter config --enable-macos-desktop
+
+      - name: Install Dependencies
+        run: flutter pub get
+
+      - name: Build macOS Release
+        run: flutter build macos --release
+
+      - name: Compress macOS Artifacts
+        run: |
+          cd build/macos/Build/Products/Release
+          zip -r ../../../../../NovaDownloader-macOS.zip *.app
+
+      - name: Upload macOS Asset
+        uses: actions/upload-artifact@v4
+        with:
+          name: NovaDownloader-macOS
+          path: NovaDownloader-macOS.zip
+
+  publish-release:
+    name: Publish GitHub Release
+    needs: [build-windows, build-linux, build-macos]
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Download All Built Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Determine Release Tag
+        id: tag_info
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "TAG_NAME=${{ github.event.inputs.tag_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "TAG_NAME=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release & Attach Binaries
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag_info.outputs.TAG_NAME }}
+          name: "Nova Downloader Pro ${{ steps.tag_info.outputs.TAG_NAME }}"
+          body: |
+            ## 🚀 Nova Downloader Pro - Version 1.0.0 Release
+
+            Nova Downloader Pro is a sleek, high-performance desktop media downloader for YouTube, Vimeo, playlists, and direct streams.
+
+            ### ✨ Key Features
+            - ⚡ **High-Speed Multi-Threaded Engine**: Accelerated downloads powered by yt-dlp & aria2c.
+            - 🎨 **Adaptive Modern UI**: Complete dark & light themes with instant live toggling.
+            - 🖼️ **Rich Thumbnails & Metadata**: View video durations, resolutions (up to 4K/1080p), and channel info.
+            - 📋 **Automated Clipboard Detection**: Automatically prompts to download copied video links.
+            - 🔔 **System Tray Integration**: Background downloads with minimal desktop footprint.
+            - 📁 **Direct File Management**: Open videos and folders directly from the app.
+
+            ### 📦 Download Assets
+            - **Windows**: `NovaDownloader-Windows-x64.zip` (extract and run `.exe`)
+            - **Linux**: `NovaDownloader-Linux-x64.tar.gz` (extract and run executable)
+            - **macOS**: `NovaDownloader-macOS.zip` (extract and move `.app` to Applications)
+          files: |
+            release-assets/NovaDownloader-Windows-x64.zip
+            release-assets/NovaDownloader-Linux-x64.tar.gz
+            release-assets/NovaDownloader-macOS.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

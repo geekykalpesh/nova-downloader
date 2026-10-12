@@ -1,0 +1,83 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+Thumbs.db
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ / Android Studio
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Visual Studio Code
+.vscode/
+
+# Flutter / Dart / Pub
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+/coverage/
+
+# Windows specific
+windows/flutter/ephemeral/
+*.user
+*.suo
+*.vcxproj.user
+*.pdb
+*.ilk
+*.obj
+*.idb
+*.tlog
+
+# Linux specific
+linux/flutter/ephemeral/
+
+# macOS / iOS specific
+macos/Flutter/ephemeral/
+macos/Flutter/Generated.xcconfig
+ios/Flutter/ephemeral/
+ios/Flutter/Generated.xcconfig
+Pods/
+Podfile.lock
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.pbxuser
+
+# Symbolication & Obfuscation
+app.*.symbols
+app.*.map.json
+
+# Build outputs
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Media, test artifacts & large binaries
+*.mp4
+*.mkv
+*.webm
+*.mp3
+*.wav
+*.zip
+*.tar.gz
+*.exe
+metadata_test.json
+
+# Scratch / Reference repos
+QDM_reference/
+.widget_preview/
